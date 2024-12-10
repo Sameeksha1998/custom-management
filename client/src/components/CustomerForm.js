@@ -8,6 +8,13 @@ const CustomerForm = ({ onAdd, onUpdate, editingCustomer }) => {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
+  const [errors, setErrors] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    address: '',
+  });
 
   useEffect(() => {
     if (editingCustomer) {
@@ -25,20 +32,61 @@ const CustomerForm = ({ onAdd, onUpdate, editingCustomer }) => {
     }
   }, [editingCustomer]);
 
+  const validateForm = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    // Required fields validation
+    if (!firstName) {
+      newErrors.firstName = 'First Name is required';
+      isValid = false;
+    }
+    if (!lastName) {
+      newErrors.lastName = 'Last Name is required';
+      isValid = false;
+    }
+    if (!email) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email is invalid';
+      isValid = false;
+    }
+    if (!phoneNumber) {
+      newErrors.phoneNumber = 'Phone Number is required';
+      isValid = false;
+    } else if (!/^\d{10}$/.test(phoneNumber)) {
+      newErrors.phoneNumber = 'Phone Number should be 10 digits';
+      isValid = false;
+    }
+    if (!address) {
+      newErrors.address = 'Address is required';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const newCustomer = { firstName, lastName, email, phoneNumber, address };
-    const url = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
+    if (!validateForm()) return; // Stop submission if validation fails
+    try {
+      const newCustomer = { firstName, lastName, email, phoneNumber, address };
+      const url = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
 
-    if (editingCustomer) {
-      const response = await axios.put(
-        `${url}/api/customers/${editingCustomer._id}`,
-        newCustomer
-      );
-      onUpdate(response.data);
-    } else {
-      const response = await axios.post(`${url}/api/customers`, newCustomer);
-      onAdd(response.data);
+      if (editingCustomer) {
+        const response = await axios.put(
+          `${url}/api/customers/${editingCustomer._id}`,
+          newCustomer
+        );
+        onUpdate(response.data);
+      } else {
+        const response = await axios.post(`${url}/api/customers`, newCustomer);
+        onAdd(response.data);
+      }
+    } catch (error) {
+      console.log(error, "error");
     }
   };
 
@@ -51,6 +99,8 @@ const CustomerForm = ({ onAdd, onUpdate, editingCustomer }) => {
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             fullWidth
+            error={!!errors.firstName}
+            helperText={(errors.firstName && 'First Name is required')}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -59,6 +109,8 @@ const CustomerForm = ({ onAdd, onUpdate, editingCustomer }) => {
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             fullWidth
+            error={!!errors.lastName}
+            helperText={(errors.lastName && 'Last Name is required')}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -67,6 +119,8 @@ const CustomerForm = ({ onAdd, onUpdate, editingCustomer }) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             fullWidth
+            error={!!errors.email}
+            helperText={(errors.email && 'Email is required')}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -75,6 +129,8 @@ const CustomerForm = ({ onAdd, onUpdate, editingCustomer }) => {
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
             fullWidth
+            error={!!errors.phoneNumber}
+            helperText={(errors.phoneNumber && 'Phone Number is required')}
           />
         </Grid>
         <Grid item xs={12}>
@@ -83,6 +139,8 @@ const CustomerForm = ({ onAdd, onUpdate, editingCustomer }) => {
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             fullWidth
+            error={!!errors.address}
+            helperText={(errors.address && 'Address is required')}
           />
         </Grid>
         <Grid item xs={12}>

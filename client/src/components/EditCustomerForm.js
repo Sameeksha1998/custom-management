@@ -1,36 +1,93 @@
-// src/components/EditCustomerForm.js
 import React, { useState, useEffect } from 'react';
-import { TextField, Button, Grid, Box } from '@mui/material';
+import { TextField, Button, Grid, Box, FormHelperText } from '@mui/material';
 import axios from 'axios';
 
-const EditCustomerForm = ({ customerId, onUpdate }) => {
+const CustomerForm = ({ onAdd, onUpdate, editingCustomer }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
-
-  let url = process.env.BACKEND_SERVER_URL 
+  const [errors, setErrors] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    address: '',
+  });
 
   useEffect(() => {
-    const fetchCustomer = async () => {
-      const response = await axios.get(`${url}/api/customers/${customerId}`);
-      const customer = response.data;
-      setFirstName(customer.firstName);
-      setLastName(customer.lastName);
-      setEmail(customer.email);
-      setPhoneNumber(customer.phoneNumber);
-      setAddress(customer.address);
-    };
+    if (editingCustomer) {
+      setFirstName(editingCustomer.firstName || '');
+      setLastName(editingCustomer.lastName || '');
+      setEmail(editingCustomer.email || '');
+      setPhoneNumber(editingCustomer.phoneNumber || '');
+      setAddress(editingCustomer.address || '');
+    } else {
+      setFirstName('');
+      setLastName('');
+      setEmail('');
+      setPhoneNumber('');
+      setAddress('');
+    }
+  }, [editingCustomer]);
 
-    fetchCustomer();
-  }, [customerId]);
+  const validateForm = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    // Required fields validation
+    if (!firstName) {
+      newErrors.firstName = 'First Name is required';
+      isValid = false;
+    }
+    if (!lastName) {
+      newErrors.lastName = 'Last Name is required';
+      isValid = false;
+    }
+    if (!email) {
+      newErrors.email = 'Email is required';
+      isValid = false;
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = 'Email is invalid';
+      isValid = false;
+    }
+    if (!phoneNumber) {
+      newErrors.phoneNumber = 'Phone Number is required';
+      isValid = false;
+    } else if (!/^\d{10}$/.test(phoneNumber)) {
+      newErrors.phoneNumber = 'Phone Number should be 10 digits';
+      isValid = false;
+    }
+    if (!address) {
+      newErrors.address = 'Address is required';
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedCustomer = { firstName, lastName, email, phoneNumber, address };
-    const response = await axios.put(`http://localhost:5001/api/customers/${customerId}`, updatedCustomer);
-    onUpdate(response.data);
+    if (!validateForm()) return; // Stop submission if validation fails
+    try {
+      const newCustomer = { firstName, lastName, email, phoneNumber, address };
+      const url = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5001';
+
+      if (editingCustomer) {
+        const response = await axios.put(
+          `${url}/api/customers/${editingCustomer._id}`,
+          newCustomer
+        );
+        onUpdate(response.data);
+      } else {
+        const response = await axios.post(`${url}/api/customers`, newCustomer);
+        onAdd(response.data);
+      }
+    } catch (error) {
+      console.log(error, "error");
+    }
   };
 
   return (
@@ -42,6 +99,8 @@ const EditCustomerForm = ({ customerId, onUpdate }) => {
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             fullWidth
+            error={!!errors.firstName}
+            helperText={errors.firstName}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -50,6 +109,8 @@ const EditCustomerForm = ({ customerId, onUpdate }) => {
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             fullWidth
+            error={!!errors.lastName}
+            helperText={errors.lastName}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -58,6 +119,8 @@ const EditCustomerForm = ({ customerId, onUpdate }) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             fullWidth
+            error={!!errors.email}
+            helperText={errors.email}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -66,6 +129,8 @@ const EditCustomerForm = ({ customerId, onUpdate }) => {
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
             fullWidth
+            error={!!errors.phoneNumber}
+            helperText={errors.phoneNumber}
           />
         </Grid>
         <Grid item xs={12}>
@@ -74,14 +139,18 @@ const EditCustomerForm = ({ customerId, onUpdate }) => {
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             fullWidth
+            error={!!errors.address}
+            helperText={errors.address}
           />
         </Grid>
         <Grid item xs={12}>
-          <Button type="submit" variant="contained">Update Customer</Button>
+          <Button type="submit" variant="contained">
+            {editingCustomer ? 'Update Customer' : 'Add Customer'}
+          </Button>
         </Grid>
       </Grid>
     </Box>
   );
 };
 
-export default EditCustomerForm;
+export default CustomerForm;
